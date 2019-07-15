@@ -279,9 +279,9 @@ end
 
 %% Aggregate cases by year of follow-up
 for y=1:10
-   if targ==3
+   if targ==1
         Hyr_wane_nr(y,:,relinf)=[sum(sum(H(tvacc+round(52.18*(y-1)):tvacc+round(52.18*(y-1))+51,1:4))) sum(sum(H(tvacc+round(52.18*(y-1)):tvacc+round(52.18*(y-1))+51,5:12))) sum(sum(H(tvacc+round(52.18*(y-1)):tvacc+round(52.18*(y-1))+51,13:au2))) sum(sum(H(tvacc+round(52.18*(y-1)):tvacc+round(52.18*(y-1))+51,au2+1:au5)))];
-    elseif targ==4
+    elseif targ==2
         Hyr_booster_wane_nr(y,:,relinf)=[sum(sum(H(tvacc+round(52.18*(y-1)):tvacc+round(52.18*(y-1))+51,1:4))) sum(sum(H(tvacc+round(52.18*(y-1)):tvacc+round(52.18*(y-1))+51,5:12))) sum(sum(H(tvacc+round(52.18*(y-1)):tvacc+round(52.18*(y-1))+51,13:au2))) sum(sum(H(tvacc+round(52.18*(y-1)):tvacc+round(52.18*(y-1))+51,au2+1:au5)))];
     end
 end

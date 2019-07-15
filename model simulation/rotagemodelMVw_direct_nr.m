@@ -51,11 +51,13 @@ pfit_mal=[78.77 47.39 34.01 26.59 21.81; %R0 Best-fit parameters for different v
     6.856 7.730 8.084 8.203 8.314; %Seasonal offset
     0.0171 0.0171 0.0171 0.0171 0.0171]; %Mean reporting fraction
 
+pvacc_mal=[0.4957; 0.7882; 0.0222]; %Best-fit vaccination parameters (did not vary by ri3)
+
 for relinf=1%:5
     
 ri3=relinf/10; %relative infectiousness of asymptomatic infection
 pars=pfit_mal(:,relinf); 
-%pvacc=pvacc_mal;
+pvacc=pvacc_mal;
 
 ptrans=pars(1); %beta0~R0
 b1=pars(2); %seasonal forcing 
@@ -89,9 +91,6 @@ reintro=0; %Allows for possible constant low background risk of infection if =/=
 
 R0=max(eig(dur*beta.*(ones(al,1)*N))); %R0 = max eigenvalue of the next-generation matrix
 
-
-%%% VACCINATION PARAMETERS
-
 %%% VACCINATION PARAMETERS
 
 for targ=1:2 %1=incremental protection following each dose; 2=incremental protection with 3rd dose at 9 months of age
@@ -105,11 +104,12 @@ avacc=[3 3; %age of vaccination: 1=birth, 2=1mo, 3=2mo, etc
        4 4; %second dose
        0 10]; %third dose
 
-sc1=.687; %pvacc(1); %probability of responding to first dose of vaccine
-sc2=.687; %pvacc(2); %probability of responding to second dose of vaccine
-sc3=.687; %pvacc(2); %probability of responding to third dose of vaccine 
-sc2n=sc2; %probability of responding to second dose given did not respond to first dose
-sc3n=sc3; %probability of responding to third dose given did not respond to first or second dose
+sc1=pvacc(1); %.528; %probability of responding to first vaccine dose
+sc2=pvacc(2); %.895; %probability of responding to second vaccine dose
+sc3=pvacc(2); %.895; %probability of responding to third vaccine dose
+res=sc1/sc2; %probability of being a "responder"
+sc2n=(1-sc2)*sc1/(1-sc1); %sc2; %probability of responding to second dose given did not respond to first dose
+sc3n=(1-sc2)^2*sc1/(1-res+res*(1-sc2)^2); %sc3; %probability of responding to third dose given did not respond to first or second dose
 
 v1=zeros(tmax,al); v2=zeros(tmax,al); v3=zeros(tmax,al); %Initialize vaccine coverage for each dose
 v1(:,avacc(1,targ))=[zeros(t0+tvacc,1); vcov(:,1); mean(vcov(end-52:end,1))*ones(tmax-t0-tvacc-length(vcov),1)]; %coverage with first dose through time
@@ -120,10 +120,10 @@ if avacc(3,targ)>0
 v3(:,avacc(3,targ))=[zeros(t0+tvacc+315,1); .81*ones(tmax-t0-tvacc-315,1)]; %coverage with third dose through time
 end
 
-wv=0; %rate of waning of vaccine-induced immunity
+wv=pvacc(3); %rate of waning of vaccine-induced immunity
 
 %Initialize vector to keep track of the number of people in each state
-St0=zeros(30*al,1);
+St0=zeros(33*al,1);
 St0(1:al,1)=[N(1) zeros(1,al-1)]; %Maternal immunity M1
 St0(al+1:2*al,1)=[0 N(2:al)-[ones(1,al-11) zeros(1,10)]]; %Susceptible_0
 St0(2*al+1:3*al,1)=[0 ones(1,al-11) zeros(1,10)]; %Infectious_1 (primary) 
@@ -159,7 +159,7 @@ St0(29*al+1:30*al,1)=zeros(1,al); %MV6
 clear St lambda H %clear outcome variables which may be in memory
 
 options=odeset('NonNegative',1:length(St0)); %force solutions to differential equations to be non-negative
-[time St]=ode45('rasisV1_direct',1:tmax,St0,options); %solve diff eqs
+[time St]=ode45('rasisV1w_direct',1:tmax,St0,options); %solve diff eqs
 
 
 %Initialize then calculate force of infection over time
@@ -229,28 +229,18 @@ end
 
 
 if targ==1
-prop0infU_direct=[Mu(:,[3 6 12 18])+St(:,al+[3 6 12 18]) sum(Mu(:,au2+1:au5)+St(:,al+au2+1:al+au5),2)]./[U(:,[3 6 12 18]) sum(U(:,au2+1:au5),2)];
-prop1infU_direct=[St(:,2*al+[3 6 12 18])+St(:,3*al+[3 6 12 18])+St(:,4*al+[3 6 12 18]) sum(St(:,2*al+au2+1:2*al+au5)+St(:,3*al+au2+1:3*al+au5)+St(:,4*al+au2+1:4*al+au5),2)]./[U(:,[3 6 12 18]) sum(U(:,au2+1:au5),2)];
-prop2infU_direct=1-prop0infU_direct-prop1infU_direct;
-
-prop0infV_direct=[Mv(:,[3 6 12 18])+St(:,15*al+[3 6 12 18]) sum(Mv(:,au2+1:au5)+St(:,15*al+au2+1:15*al+au5),2)]./[V(:,[3 6 12 18]) sum(V(:,au2+1:au5),2)];
-prop1infV_direct=[St(:,16*al+[3 6 12 18])+St(:,17*al+[3 6 12 18])+St(:,18*al+[3 6 12 18]) sum(St(:,16*al+au2+1:16*al+au5)+St(:,17*al+au2+1:17*al+au5)+St(:,18*al+au2+1:18*al+au5),2)]./[V(:,[3 6 12 18]) sum(V(:,au2+1:au5),2)];
-prop2infV_direct=1-prop0infV_direct-prop1infV_direct;
-end
-
-if targ==1
-Hdirect0_nobooster(:,relinf)=sum(Hdirect(:,1:12),2);
-Hdirect1_nobooster(:,relinf)=sum(Hdirect(:,13:au2),2);
-Hdirect2_nobooster(:,relinf)=sum(Hdirect(:,au2+1:au5),2);
+Hdirect0_wane_nobooster_nr(:,relinf)=sum(Hdirect(:,1:12),2);
+Hdirect1_wane_nobooster_nr(:,relinf)=sum(Hdirect(:,13:au2),2);
+Hdirect2_wane_nobooster_nr(:,relinf)=sum(Hdirect(:,au2+1:au5),2);
 elseif targ==2
-Hdirect0_booster(:,relinf)=sum(Hdirect(:,1:12),2);
-Hdirect1_booster(:,relinf)=sum(Hdirect(:,13:au2),2);
-Hdirect2_booster(:,relinf)=sum(Hdirect(:,au2+1:au5),2);
+Hdirect0_wane_booster_nr(:,relinf)=sum(Hdirect(:,1:12),2);
+Hdirect1_wane_booster_nr(:,relinf)=sum(Hdirect(:,13:au2),2);
+Hdirect2_wane_booster_nr(:,relinf)=sum(Hdirect(:,au2+1:au5),2);
 end
 
 %Calculate direct effectiveness for all children <5 yrs old and by age for 4-11 mo olds, 12-23 month olds, and 2-4 yr olds ASSUMING NO REDUCTION IN TRANSMISSION
-VEtot_direct(relinf,1)=1-((sum(Hv_direct(tvacc+52:tvacc+233,4:au5))./sum(V(tvacc+52:tvacc+233,4:au5)))*agedistV(4:au5)')/((sum(Hu_direct(tvacc+52:tvacc+233,4:au5))./sum(U(tvacc+52:tvacc+233,4:au5)))*agedistU(4:au5)');
-VEage_direct(relinf,:)=1-[(sum(sum(Hv_direct(tvacc+52:tvacc+233,4:12),2))/sum(sum(V(tvacc+52:tvacc+233,4:12),2)))/(sum(sum(Hu_direct(tvacc+52:tvacc+233,4:12),2))/sum(sum(U(tvacc+52:tvacc+233,4:12),2)))...
+VEtot_wane_direct_nr(relinf,1)=1-((sum(Hv_direct(tvacc+52:tvacc+233,4:au5))./sum(V(tvacc+52:tvacc+233,4:au5)))*agedistV(4:au5)')/((sum(Hu_direct(tvacc+52:tvacc+233,4:au5))./sum(U(tvacc+52:tvacc+233,4:au5)))*agedistU(4:au5)');
+VEage_wane_direct_nr(relinf,:)=1-[(sum(sum(Hv_direct(tvacc+52:tvacc+233,4:12),2))/sum(sum(V(tvacc+52:tvacc+233,4:12),2)))/(sum(sum(Hu_direct(tvacc+52:tvacc+233,4:12),2))/sum(sum(U(tvacc+52:tvacc+233,4:12),2)))...
     (sum(sum(Hv_direct(tvacc+52:tvacc+233,13:au2),2))/sum(sum(V(tvacc+52:tvacc+233,13:au2),2)))/(sum(sum(Hu_direct(tvacc+52:tvacc+233,13:au2),2))/sum(sum(U(tvacc+52:tvacc+233,13:au2),2)))...
     (sum(Hv_direct(tvacc+52:tvacc+233,au2+1))/sum(V(tvacc+52:tvacc+233,au2+1)))/(sum(Hu_direct(tvacc+52:tvacc+233,au2+1))/sum(U(tvacc+52:tvacc+233,au2+1)))];
 
@@ -260,9 +250,9 @@ end
 %% Aggregate cases by year of follow-up
 for y=1:10
     if targ==1
-        Hyr_nobooster_direct(y,:)=[sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,1:4))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,5:12))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,13:au2))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,au2+1:au5)))];
+        Hyr_wane_direct_nr(y,:)=[sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,1:4))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,5:12))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,13:au2))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,au2+1:au5)))];
     elseif targ==2
-        Hyr_booster_direct(y,:)=[sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,1:4))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,5:12))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,13:au2))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,au2+1:au5)))];
+        Hyr_waneboost_direct_nr(y,:)=[sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,1:4))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,5:12))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,13:au2))) sum(sum(H(tvacc+round(52.18*(y-1))+6:tvacc+round(52.18*(y-1))+57,au2+1:au5)))];
     end
 end
 
@@ -288,8 +278,8 @@ figure
 hold on
 plot([datenum([2012 10 29]) datenum([2012 10 29])],[0 10],'--k')
 plot(datenum(malVS3date),[sum(rotamalVS3(:,1:12),2) sum(rotamalVS3(:,13:24),2) sum(rotamalVS3(:,25:end),2)]); 
-plot(datesim(tvacc:tvacc+233),[Hrelinf0_nobooster(tvacc:tvacc+233,relinf) Hrelinf1_nobooster(tvacc:tvacc+233,relinf) Hrelinf2_nobooster(tvacc:tvacc+233,relinf)],'LineWidth',1,'LineStyle','--')
-plot(datesim(tvacc:tvacc+233),[Hdirect0_nobooster(tvacc:tvacc+233,relinf) Hdirect1_nobooster(tvacc:tvacc+233,relinf) Hdirect2_nobooster(tvacc:tvacc+233,relinf)],'LineWidth',1.5)
+plot(datesim(tvacc:tvacc+233),[Hrelinf0_wane_nr(tvacc:tvacc+233,relinf) Hrelinf1_wane_nr(tvacc:tvacc+233,relinf) Hrelinf2_wane_nr(tvacc:tvacc+233,relinf)],'LineWidth',1,'LineStyle','--')
+plot(datesim(tvacc:tvacc+233),[Hdirect0_wane_nobooster_nr(tvacc:tvacc+233,relinf) Hdirect1_wane_nobooster_nr(tvacc:tvacc+233,relinf) Hdirect2_wane_nobooster_nr(tvacc:tvacc+233,relinf)],'LineWidth',1.5)
 datetick('x','mmm-yy')
 ylabel('Number of RVGE cases (per week)')
 
