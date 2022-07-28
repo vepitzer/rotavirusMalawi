@@ -54,7 +54,7 @@ rotamalVS3 - Number of RVGE cases by week (rows) and age group (columns: <1m,...
 
 rotamalVS3_unvacc - Number of RVGE cases among unvaccinated individuals by week and age group for 2012-2018
 
-rotamalVS3_unvacc - Number of RVGE cases among vaccinated individuals by week and age group for 2012-2018
+rotamalVS3_vacc - Number of RVGE cases among vaccinated individuals by week and age group for 2012-2018
 
 vcov_mavg - 27-week moving average of the 1- and 2-dose rotavirus vaccine coverage estimates for 2012-2018
 
