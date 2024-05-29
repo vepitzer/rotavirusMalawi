@@ -2,6 +2,8 @@
 
 This website contains the MATLAB code and aggregate data on rotavirus gastroenteritis (RVGE) cases from Queen Elizabeth Central Hospital in Blantyre, Malawi needed to reproduce the results presented in Pitzer VE et al, Science Transl Med, 2019.
 
+**Updated May 29, 2024 to include "vaccine impact" folder with code for most recent analysis**
+
 DATA
 
 The file 'malawidata.mat' contains the following variables:
